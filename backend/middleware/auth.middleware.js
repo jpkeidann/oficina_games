@@ -1,31 +1,33 @@
-const CryptoJS = require("crypto-js");
-const CHAVE_SECRETA = 'LOW_KEY'
+const CryptoJs = require('crypto-js')
+const { DATE } = require('sequelize')
+const CHAVE_SEGREDO = 'LOW_KEY'
 
-function authMiddleware( req , res , next ){
+function authMiddleware(req,res,next){
     const token = req.headers['authorization']
+    console.log(token)
 
     if(!token){
-        return res.status(403).json('Acesso negado!')
+        return res.status(401).json({message: 'Acesso negado! token não fornecido'})
     }
-    
-    try {
-        const bytes  = CryptoJS.AES.decrypt(token, CHAVE_SECRETA);
-        const tokenDecript = bytes.toString(CryptoJS.enc.Utf8);
-        
-        if(!tokenDecript){
-            return res.status(403).json('Acesso negado!')
-        }
-        
-        const payload = JSON.parse(tokenDecript)
-        
-        if(Date.now() > payload.expiraEm){
-            return res.status(408).json('Tempo de sessão expirado!')
-        }
 
-        req.usuario = payload
+    try{
+       const bytes = CryptoJs.AES.decrypt(token,CHAVE_SEGREDO)
+       const dadosDescriptacao = bytes.toString(CryptoJs.enc.Utf8)
 
-        next()
-    } catch (err) {
-        
+       if(!dadosDescriptacao){
+        return res.status(201).json({message: 'Token invalido'})
+       }
+
+       const payload = JSON.parse(dadosDescriptacao)
+
+       if(Date.now() > payload.expiraEm){
+        return res.status(401).json({message: 'Sessão expirada! faça login novamento'})
+       }
+
+       next()
+    }catch(err){
+        return res.status(500).json({message: `Falha na autenticação do token`})
     }
 }
+
+module.exports = authMiddleware
